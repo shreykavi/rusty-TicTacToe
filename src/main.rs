@@ -1,5 +1,12 @@
+use bevy::prelude::*;
 use regex::Regex;
 use std::io;
+
+// Resources:
+struct WinSize {
+    w: f32,
+    h: f32,
+}
 
 pub struct Grid {
     grid: Vec<Vec<String>>,
@@ -76,6 +83,39 @@ impl Move {
 }
 
 fn main() {
+    App::new()
+        .insert_resource(WindowDescriptor {
+            title: "Rusty Tic Tac Toe".to_string(),
+            width: 598.0,
+            height: 598.0,
+            ..Default::default()
+        })
+        .add_plugins(DefaultPlugins)
+        .add_startup_system(setup)
+        .run();
+}
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: ResMut<Windows>) {
+    // Watches for changes in files
+    asset_server.watch_for_changes().unwrap();
+
+    // camera
+    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+
+    // position window to top left
+    let mut window = windows.get_primary_mut().unwrap();
+
+    // Creates a resource that can later be used
+    commands.insert_resource(WinSize {
+        w: window.width(),
+        h: window.height(),
+    });
+
+    // window.set_position(IVec2::new(1600,200));
+}
+
+fn cli_logic() {
+    // Kept for reference (might not be able to reuse for gui)
     println!("Welcome to TicTacToe!");
     println!("Input the grid size you'd like to play: ");
 
