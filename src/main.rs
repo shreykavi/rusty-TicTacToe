@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::io;
 
 pub struct Grid {
@@ -35,22 +36,33 @@ fn main() {
     // Create grid
     let mut grid = Grid::new(size.trim().parse().expect("Expected an int!"));
 
-    // players 1 and -2
+    // players X and O
     let mut next_player = "X";
+
+    // Regex for grid locations
+    let re = Regex::new(r"(\d{1}),(\d{1})").unwrap();
 
     // Loop turn by turn to get next move
     // Stop loop when either wins or theres a draw
     loop {
         next_player = if next_player == "O" { "X" } else { "O" };
         println!("Player {}'s turn", next_player);
-        println!("Input the next move");
+        println!("Input the next move (in format x,y)");
 
         let mut next_move = String::new();
         io::stdin()
             .read_line(&mut next_move)
             .expect("No move specified!");
 
-        grid.set_position(0, 0, String::from(next_player));
+        let location = next_move.trim();
+        let cap = re.captures(location).unwrap();
+        println!("x: {} y: {}", &cap[1], &cap[2]);
+
+        grid.set_position(
+            cap[1].parse::<usize>().unwrap(),
+            cap[2].parse::<usize>().unwrap(),
+            String::from(next_player),
+        );
         grid.print();
     }
 }
