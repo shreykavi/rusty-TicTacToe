@@ -3,17 +3,25 @@ use std::io;
 
 pub struct Grid {
     grid: Vec<Vec<String>>,
+    size: usize,
 }
 
 impl Grid {
     pub fn new(m: usize) -> Grid {
-        let mut grid = vec![vec![String::from("_"); m]; m];
-        Grid { grid }
+        let grid = vec![vec![String::from("_"); m]; m];
+        Grid { grid, size: m }
     }
 
-    pub fn set_position(&mut self, x: usize, y: usize, marking: String) {
+    pub fn set_position(&mut self, mov: Move, marking: String) -> bool {
+        // TODO: error check the request
+        if mov.x >= self.size || mov.y >= self.size || self.grid[mov.y][mov.x] != "_" {
+            println!("This is an incorrect move.");
+            return false;
+        }
+
         // if not set, set the position
-        self.grid[y][x] = marking;
+        self.grid[mov.y][mov.x] = marking;
+        return true;
     }
 
     pub fn print(&self) {
@@ -21,6 +29,26 @@ impl Grid {
         for row in &self.grid {
             println!("{:?}", row);
         }
+    }
+}
+
+pub struct Move {
+    x: usize,
+    y: usize,
+}
+
+impl Move {
+    pub fn new(next_move: String) -> Move {
+        // Regex for grid locations
+        let re = Regex::new(r"(\d{1}),(\d{1})").unwrap();
+
+        let location = next_move.trim();
+        let cap = re.captures(location).expect("Need a move of type: x,y");
+
+        let x = cap[1].parse::<usize>().unwrap();
+        let y = cap[2].parse::<usize>().unwrap();
+        println!("x: {} y: {}", x, y);
+        Move { x, y }
     }
 }
 
@@ -39,30 +67,25 @@ fn main() {
     // players X and O
     let mut next_player = "X";
 
-    // Regex for grid locations
-    let re = Regex::new(r"(\d{1}),(\d{1})").unwrap();
-
     // Loop turn by turn to get next move
     // Stop loop when either wins or theres a draw
     loop {
         next_player = if next_player == "O" { "X" } else { "O" };
         println!("Player {}'s turn", next_player);
-        println!("Input the next move (in format x,y)");
+        println!("Input the next move (in format 'x,y')");
 
-        let mut next_move = String::new();
-        io::stdin()
-            .read_line(&mut next_move)
-            .expect("No move specified!");
+        let mut request = false;
+        // Loop until valid move supplied
+        while !request {
+            let mut next_move = String::new();
+            io::stdin()
+                .read_line(&mut next_move)
+                .expect("No move specified!");
 
-        let location = next_move.trim();
-        let cap = re.captures(location).unwrap();
-        println!("x: {} y: {}", &cap[1], &cap[2]);
+            let parsed_move = Move::new(next_move);
+            request = grid.set_position(parsed_move, String::from(next_player));
+        }
 
-        grid.set_position(
-            cap[1].parse::<usize>().unwrap(),
-            cap[2].parse::<usize>().unwrap(),
-            String::from(next_player),
-        );
         grid.print();
     }
 }
