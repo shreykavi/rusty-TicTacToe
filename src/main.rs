@@ -89,16 +89,19 @@ fn main() {
             title: "Rusty Tic Tac Toe".to_string(),
             width: 598.0,
             height: 598.0,
+            resizable: false,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
+        .add_system(handle_mouse_clicks)
         .run();
 }
 
 const GRID_SPRITE: &str = "grid.png";
 const X_SPRITE: &str = "x.png";
 const O_SPRITE: &str = "o.png";
+const GRID_SIZE: f32 = 3.;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: ResMut<Windows>) {
     // Watches for changes in files
@@ -128,6 +131,21 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Re
     });
 
     // window.set_position(IVec2::new(1600,200));
+}
+
+fn handle_mouse_clicks(
+    mouse_input: Res<Input<MouseButton>>,
+    windows: Res<Windows>,
+    win_size: Res<WinSize>,
+) {
+    let win = windows.get_primary().expect("no primary window");
+    let separator_width = win_size.w / GRID_SIZE;
+    if mouse_input.just_pressed(MouseButton::Left) {
+        let click_position = win.cursor_position().unwrap();
+        let x = click_position[0] / separator_width;
+        let y = click_position[1] / separator_width;
+        println!("click at {:?}, {:?}", x.floor(), y.floor());
+    }
 }
 
 fn cli_logic() {
