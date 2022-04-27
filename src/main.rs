@@ -84,6 +84,7 @@ impl Move {
 
 fn main() {
     App::new()
+        .insert_resource(ClearColor(Color::rgb(0.04, 0.04, 0.04)))
         .insert_resource(WindowDescriptor {
             title: "Rusty Tic Tac Toe".to_string(),
             width: 598.0,
@@ -94,6 +95,10 @@ fn main() {
         .add_startup_system(setup)
         .run();
 }
+
+const GRID_SPRITE: &str = "grid.png";
+const X_SPRITE: &str = "x.png";
+const O_SPRITE: &str = "o.png";
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: ResMut<Windows>) {
     // Watches for changes in files
@@ -109,6 +114,17 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Re
     commands.insert_resource(WinSize {
         w: window.width(),
         h: window.height(),
+    });
+
+    commands.spawn_bundle(SpriteBundle {
+        transform: Transform {
+            // x,y,z
+            translation: Vec3::new(0., 0., 0.),
+            scale: Vec3::new(1., 1., 1.),
+            ..Default::default()
+        },
+        texture: asset_server.load(GRID_SPRITE),
+        ..Default::default()
     });
 
     // window.set_position(IVec2::new(1600,200));
