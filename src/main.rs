@@ -3,6 +3,11 @@ use regex::Regex;
 use std::io;
 
 // Resources:
+
+struct NextPlayer {
+    mark: String,
+}
+
 struct WinSize {
     w: f32,
     h: f32,
@@ -19,22 +24,22 @@ impl Grid {
         Grid { grid, size: m }
     }
 
-    pub fn set_position(&mut self, mov: &Move, marking: String) -> bool {
-        // TODO: error check the request
+    pub fn set_position(&mut self, mov: &Move, marking: &String) -> bool {
+        // Error check the request
         if mov.x >= self.size || mov.y >= self.size || self.grid[mov.y][mov.x] != "_" {
             println!("This is an incorrect move.");
             return false;
         }
 
         // if not set, set the position
-        self.grid[mov.y][mov.x] = marking;
+        self.grid[mov.y][mov.x] = (&marking).to_string();
         return true;
     }
 
-    pub fn check_game(&mut self, mov: &Move, marking: String) -> bool {
+    pub fn check_game(&mut self, mov: &Move, marking: &String) -> bool {
         // check vertical, horizontal, and 2 diagonals of x,y
 
-        let answer = vec![&marking; self.size];
+        let answer = vec![marking; self.size];
         let mut horizontal: Vec<&String> = Vec::new();
         let mut vertical: Vec<&String> = Vec::new();
         let mut diagonal1: Vec<&String> = Vec::new();
@@ -67,20 +72,20 @@ pub struct Move {
     y: usize,
 }
 
-impl Move {
-    pub fn new(next_move: String) -> Move {
-        // Regex for grid locations
-        let re = Regex::new(r"(\d{1}),(\d{1})").unwrap();
+// impl Move {
+//     pub fn new(next_move: String) -> Move {
+//         // Regex for grid locations
+//         let re = Regex::new(r"(\d{1}),(\d{1})").unwrap();
 
-        let location = next_move.trim();
-        let cap = re.captures(location).expect("Need a move of type: x,y");
+//         let location = next_move.trim();
+//         let cap = re.captures(location).expect("Need a move of type: x,y");
 
-        let x = cap[1].parse::<usize>().unwrap();
-        let y = cap[2].parse::<usize>().unwrap();
-        println!("x: {} y: {}", x, y);
-        Move { x, y }
-    }
-}
+//         let x = cap[1].parse::<usize>().unwrap();
+//         let y = cap[2].parse::<usize>().unwrap();
+//         println!("x: {} y: {}", x, y);
+//         Move { x, y }
+//     }
+// }
 
 fn main() {
     App::new()
@@ -101,7 +106,7 @@ fn main() {
 const GRID_SPRITE: &str = "grid.png";
 const X_SPRITE: &str = "x.png";
 const O_SPRITE: &str = "o.png";
-const GRID_SIZE: f32 = 3.;
+const GRID_SIZE: usize = 3;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: ResMut<Windows>) {
     // Watches for changes in files
@@ -111,12 +116,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Re
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
     // position window to top left
-    let mut window = windows.get_primary_mut().unwrap();
+    let window = windows.get_primary_mut().unwrap();
 
     // Creates a resource that can later be used
     commands.insert_resource(WinSize {
         w: window.width(),
         h: window.height(),
+    });
+    commands.insert_resource(Grid::new(GRID_SIZE));
+    commands.insert_resource(NextPlayer {
+        mark: "X".to_string(),
     });
 
     commands.spawn_bundle(SpriteBundle {
@@ -137,55 +146,78 @@ fn handle_mouse_clicks(
     mouse_input: Res<Input<MouseButton>>,
     windows: Res<Windows>,
     win_size: Res<WinSize>,
+    mut grid: ResMut<Grid>,
+    mut next_player: ResMut<NextPlayer>,
 ) {
     let win = windows.get_primary().expect("no primary window");
-    let separator_width = win_size.w / GRID_SIZE;
-    if mouse_input.just_pressed(MouseButton::Left) {
-        let click_position = win.cursor_position().unwrap();
-        let x = click_position[0] / separator_width;
-        let y = click_position[1] / separator_width;
-        println!("click at {:?}, {:?}", x.floor(), y.floor());
-    }
-}
+    let separator_width = win_size.w as usize / GRID_SIZE;
 
-fn cli_logic() {
-    // Kept for reference (might not be able to reuse for gui)
-    println!("Welcome to TicTacToe!");
-    println!("Input the grid size you'd like to play: ");
-
-    let mut size = String::new();
-    io::stdin()
-        .read_line(&mut size)
-        .expect("No size specified!");
-
-    // Create grid
-    let mut grid = Grid::new(size.trim().parse().expect("Expected an int!"));
-
-    // players X and O
-    let mut next_player = "X";
-
+    let mut request = false;
     let mut winner = false;
 
-    // Loop turn by turn to get next move
-    // Stop loop when either wins or theres a draw
-    while !winner {
-        next_player = if next_player == "O" { "X" } else { "O" };
-        println!("Player {}'s turn", next_player);
-        println!("Input the next move (in format 'x,y')");
+    if mouse_input.just_pressed(MouseButton::Left) {
+        let click_position = win.cursor_position().unwrap();
+        let x = click_position[0] as usize / separator_width;
+        let y = click_position[1] as usize / separator_width;
+        println!("click at {:?}, {:?}", x, y); // debug print
 
-        let mut request = false;
-        // Loop until valid move supplied
-        while !request {
-            let mut next_move = String::new();
-            io::stdin()
-                .read_line(&mut next_move)
-                .expect("No move specified!");
+        let parsed_move = Move { x, y };
+        request = grid.set_position(&parsed_move, &next_player.mark);
+        winner = grid.check_game(&parsed_move, &next_player.mark);
+        grid.print(); // debugging print
 
-            let parsed_move = Move::new(next_move);
-            request = grid.set_position(&parsed_move, String::from(next_player));
-            winner = grid.check_game(&parsed_move, String::from(next_player));
+        if winner {
+            // TODO: popup done game
+            println!("Player {} has won the game!", next_player.mark);
         }
-        grid.print();
+        if request {
+            next_player.mark = if next_player.mark == "O".to_string() {
+                "X".to_string()
+            } else {
+                "O".to_string()
+            };
+        }
     }
-    println!("Player {} has won the game!", next_player);
 }
+
+// fn cli_logic() {
+//     // Kept for reference (might not be able to reuse for gui)
+//     println!("Welcome to TicTacToe!");
+//     println!("Input the grid size you'd like to play: ");
+
+//     let mut size = String::new();
+//     io::stdin()
+//         .read_line(&mut size)
+//         .expect("No size specified!");
+
+//     // Create grid
+//     let mut grid = Grid::new(size.trim().parse().expect("Expected an int!"));
+
+//     // players X and O
+//     let mut next_player = "X";
+
+//     let mut winner = false;
+
+//     // Loop turn by turn to get next move
+//     // Stop loop when either wins or theres a draw
+//     while !winner {
+//         next_player = if next_player == "O" { "X" } else { "O" };
+//         println!("Player {}'s turn", next_player);
+//         println!("Input the next move (in format 'x,y')");
+
+//         let mut request = false;
+//         // Loop until valid move supplied
+//         while !request {
+//             let mut next_move = String::new();
+//             io::stdin()
+//                 .read_line(&mut next_move)
+//                 .expect("No move specified!");
+
+//             let parsed_move = Move::new(next_move);
+//             request = grid.set_position(&parsed_move, String::from(next_player));
+//             winner = grid.check_game(&parsed_move, String::from(next_player));
+//         }
+//         grid.print();
+//     }
+//     println!("Player {} has won the game!", next_player);
+// }
