@@ -3,9 +3,18 @@ use regex::Regex;
 use std::io;
 
 // Resources:
-
 struct NextPlayer {
     mark: String,
+}
+
+impl NextPlayer {
+    pub fn switch(&mut self) {
+        self.mark = if self.mark == "O".to_string() {
+            "X".to_string()
+        } else {
+            "O".to_string()
+        };
+    }
 }
 
 struct WinSize {
@@ -60,7 +69,7 @@ impl Grid {
     }
 
     pub fn print(&self) {
-        // if not set, set the position
+        // print current grid for debugging
         for row in &self.grid {
             println!("{:?}", row);
         }
@@ -71,21 +80,6 @@ pub struct Move {
     x: usize,
     y: usize,
 }
-
-// impl Move {
-//     pub fn new(next_move: String) -> Move {
-//         // Regex for grid locations
-//         let re = Regex::new(r"(\d{1}),(\d{1})").unwrap();
-
-//         let location = next_move.trim();
-//         let cap = re.captures(location).expect("Need a move of type: x,y");
-
-//         let x = cap[1].parse::<usize>().unwrap();
-//         let y = cap[2].parse::<usize>().unwrap();
-//         println!("x: {} y: {}", x, y);
-//         Move { x, y }
-//     }
-// }
 
 fn main() {
     App::new()
@@ -106,7 +100,7 @@ fn main() {
 const GRID_SPRITE: &str = "grid.png";
 const X_SPRITE: &str = "x.png";
 const O_SPRITE: &str = "o.png";
-const GRID_SIZE: usize = 3;
+const GRID_SIZE: usize = 3; //defaults to grid size 3 // TODO: variable grid size
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: ResMut<Windows>) {
     // Watches for changes in files
@@ -118,14 +112,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Re
     // position window to top left
     let window = windows.get_primary_mut().unwrap();
 
-    // Creates a resource that can later be used
+    // Creates resources that can later be used
     commands.insert_resource(WinSize {
         w: window.width(),
         h: window.height(),
     });
     commands.insert_resource(Grid::new(GRID_SIZE));
     commands.insert_resource(NextPlayer {
-        mark: "X".to_string(),
+        mark: "X".to_string(), // starts with X
     });
 
     commands.spawn_bundle(SpriteBundle {
@@ -138,8 +132,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Re
         texture: asset_server.load(GRID_SPRITE),
         ..Default::default()
     });
-
-    // window.set_position(IVec2::new(1600,200));
 }
 
 fn handle_mouse_clicks(
@@ -171,53 +163,7 @@ fn handle_mouse_clicks(
             println!("Player {} has won the game!", next_player.mark);
         }
         if request {
-            next_player.mark = if next_player.mark == "O".to_string() {
-                "X".to_string()
-            } else {
-                "O".to_string()
-            };
+            next_player.switch()
         }
     }
 }
-
-// fn cli_logic() {
-//     // Kept for reference (might not be able to reuse for gui)
-//     println!("Welcome to TicTacToe!");
-//     println!("Input the grid size you'd like to play: ");
-
-//     let mut size = String::new();
-//     io::stdin()
-//         .read_line(&mut size)
-//         .expect("No size specified!");
-
-//     // Create grid
-//     let mut grid = Grid::new(size.trim().parse().expect("Expected an int!"));
-
-//     // players X and O
-//     let mut next_player = "X";
-
-//     let mut winner = false;
-
-//     // Loop turn by turn to get next move
-//     // Stop loop when either wins or theres a draw
-//     while !winner {
-//         next_player = if next_player == "O" { "X" } else { "O" };
-//         println!("Player {}'s turn", next_player);
-//         println!("Input the next move (in format 'x,y')");
-
-//         let mut request = false;
-//         // Loop until valid move supplied
-//         while !request {
-//             let mut next_move = String::new();
-//             io::stdin()
-//                 .read_line(&mut next_move)
-//                 .expect("No move specified!");
-
-//             let parsed_move = Move::new(next_move);
-//             request = grid.set_position(&parsed_move, String::from(next_player));
-//             winner = grid.check_game(&parsed_move, String::from(next_player));
-//         }
-//         grid.print();
-//     }
-//     println!("Player {} has won the game!", next_player);
-// }
