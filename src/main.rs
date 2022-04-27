@@ -1,6 +1,9 @@
 use bevy::prelude::*;
-use regex::Regex;
-use std::io;
+
+const GRID_SPRITE: &str = "grid.png";
+const X_SPRITE: &str = "x.png";
+const O_SPRITE: &str = "o.png";
+const GRID_SIZE: usize = 3; //defaults to grid size 3 // TODO: variable grid size
 
 // Resources:
 struct NextPlayer {
@@ -13,6 +16,13 @@ impl NextPlayer {
             "X".to_string()
         } else {
             "O".to_string()
+        };
+    }
+    pub fn sprite(&mut self) -> &str {
+        if self.mark == "X".to_string() {
+            return X_SPRITE;
+        } else {
+            return O_SPRITE;
         };
     }
 }
@@ -97,11 +107,6 @@ fn main() {
         .run();
 }
 
-const GRID_SPRITE: &str = "grid.png";
-const X_SPRITE: &str = "x.png";
-const O_SPRITE: &str = "o.png";
-const GRID_SIZE: usize = 3; //defaults to grid size 3 // TODO: variable grid size
-
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: ResMut<Windows>) {
     // Watches for changes in files
     asset_server.watch_for_changes().unwrap();
@@ -135,8 +140,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Re
 }
 
 fn handle_mouse_clicks(
+    mut commands: Commands,
     mouse_input: Res<Input<MouseButton>>,
     windows: Res<Windows>,
+    asset_server: Res<AssetServer>,
     win_size: Res<WinSize>,
     mut grid: ResMut<Grid>,
     mut next_player: ResMut<NextPlayer>,
@@ -151,19 +158,34 @@ fn handle_mouse_clicks(
         let click_position = win.cursor_position().unwrap();
         let x = click_position[0] as usize / separator_width;
         let y = click_position[1] as usize / separator_width;
-        println!("click at {:?}, {:?}", x, y); // debug print
 
         let parsed_move = Move { x, y };
         request = grid.set_position(&parsed_move, &next_player.mark);
         winner = grid.check_game(&parsed_move, &next_player.mark);
-        grid.print(); // debugging print
 
         if winner {
             // TODO: popup done game
             println!("Player {} has won the game!", next_player.mark);
         }
         if request {
-            next_player.switch()
+            // Draw mark
+            let sprite = commands.spawn_bundle(SpriteBundle {
+                transform: Transform {
+                    // x,y,z
+                    translation: Vec3::new(
+                        // - GRID_SIZE/2 on x and y to offset axis since Transforms have 0,0 at center
+                        (separator_width as f32 * (x as f32 - (GRID_SIZE / 2) as f32)),
+                        (separator_width as f32 * (y as f32 - (GRID_SIZE / 2) as f32)),
+                        1.,
+                    ),
+                    scale: Vec3::new(0.25, 0.25, 1.),
+                    ..Default::default()
+                },
+                texture: asset_server.load(next_player.sprite()),
+                ..Default::default()
+            });
+
+            next_player.switch();
         }
     }
 }
