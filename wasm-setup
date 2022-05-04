@@ -27,7 +27,7 @@ fi
 # Create wasm folder if it doesn't already exist
 if ! [ -d docs ]; then
     echo "Creating folder 'docs'"
-    mkdirdocs 
+    mkdir docs 
 fi
 
 # Looks for `name = "crate_name"`, gets the third word (`"crate_name"`) and removes the quotes.
