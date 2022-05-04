@@ -1,9 +1,10 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, winit::WinitSettings};
 
 const GRID_SPRITE: &str = "grid.png";
 const X_SPRITE: &str = "x.png";
 const O_SPRITE: &str = "o.png";
 const GRID_SIZE: usize = 3; //defaults to grid size 3 // TODO: variable grid size
+const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 
 // Resources:
 struct NextPlayer {
@@ -101,6 +102,8 @@ fn main() {
             resizable: false,
             ..Default::default()
         })
+        // Only run the app when there is user input. This will significantly reduce CPU/GPU use.
+        .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
         .add_system(handle_mouse_clicks)
@@ -111,7 +114,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows: Re
     // Watches for changes in files
     asset_server.watch_for_changes().unwrap();
 
-    // camera
+    // cameras (UI and 2D for game)
+    commands.spawn_bundle(UiCameraBundle::default());
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
     // position window to top left
@@ -154,6 +158,113 @@ fn handle_mouse_clicks(
     let mut request = false;
     let mut winner = false;
 
+    // For testing
+    if mouse_input.just_pressed(MouseButton::Right) {
+        commands
+            .spawn_bundle(NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                    justify_content: JustifyContent::SpaceBetween,
+                    ..default()
+                },
+                color: Color::NONE.into(),
+                ..default()
+            })
+            .with_children(|parent| {
+                // absolute positioning
+                parent
+                    .spawn_bundle(NodeBundle {
+                        style: Style {
+                            size: Size::new(Val::Px(400.0), Val::Px(300.0)),
+                            position_type: PositionType::Absolute,
+                            position: Rect {
+                                left: Val::Px(win_size.w as f32 / 2. - 200.),
+                                bottom: Val::Px(win_size.h as f32 / 2. - 150.),
+                                ..default()
+                            },
+                            border: Rect::all(Val::Px(10.0)),
+                            ..default()
+                        },
+                        color: Color::rgb(0.4, 0.4, 1.0).into(),
+                        ..default()
+                    })
+                    .with_children(|parent| {
+                        parent
+                            .spawn_bundle(NodeBundle {
+                                style: Style {
+                                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                                    flex_direction: FlexDirection::ColumnReverse,
+                                    justify_content: JustifyContent::Center,
+                                    align_items: AlignItems::Center,
+                                    align_content: AlignContent::Center,
+                                    ..default()
+                                },
+                                color: Color::rgb(0.8, 0.8, 1.0).into(),
+                                ..default()
+                            })
+                            .with_children(|parent| {
+                                parent.spawn_bundle(TextBundle {
+                                    style: Style {
+                                        // center button
+                                        margin: Rect::all(Val::Auto),
+                                        // horizontally center child text
+                                        justify_content: JustifyContent::Center,
+                                        // vertically center child text
+                                        align_items: AlignItems::Center,
+                                        align_content: AlignContent::Center,
+                                        max_size: Size::new(Val::Px(350.0), Val::Px(100.0)),
+                                        ..default()
+                                    },
+                                    text: Text::with_section(
+                                        "Player X wins!",
+                                        TextStyle {
+                                            font: asset_server.load("fonts/FiraMono-Medium.ttf"),
+                                            font_size: 40.0,
+                                            color: Color::rgb(0.9, 0.9, 0.9),
+                                        },
+                                        TextAlignment {
+                                            vertical: VerticalAlign::Center,
+                                            horizontal: HorizontalAlign::Center,
+                                        },
+                                        // Default::default(),
+                                    ),
+                                    ..default()
+                                });
+                                parent
+                                    .spawn_bundle(ButtonBundle {
+                                        style: Style {
+                                            size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                                            // center button
+                                            margin: Rect::all(Val::Auto),
+                                            // horizontally center child text
+                                            justify_content: JustifyContent::Center,
+                                            // vertically center child text
+                                            align_items: AlignItems::Center,
+                                            ..default()
+                                        },
+                                        color: NORMAL_BUTTON.into(),
+                                        ..default()
+                                    })
+                                    .with_children(|parent| {
+                                        parent.spawn_bundle(TextBundle {
+                                            text: Text::with_section(
+                                                "Restart",
+                                                TextStyle {
+                                                    font: asset_server
+                                                        .load("fonts/FiraSans-Bold.ttf"),
+                                                    font_size: 40.0,
+                                                    color: Color::rgb(0.9, 0.9, 0.9),
+                                                },
+                                                Default::default(),
+                                            ),
+                                            ..default()
+                                        });
+                                    });
+                            });
+                    });
+            });
+    }
+
     if mouse_input.just_pressed(MouseButton::Left) {
         let click_position = win.cursor_position().unwrap();
         let x = click_position[0] as usize / separator_width;
@@ -165,6 +276,7 @@ fn handle_mouse_clicks(
 
         if winner {
             // TODO: popup done game
+
             println!("Player {} has won the game!", next_player.mark);
         }
         if request {
