@@ -1,4 +1,4 @@
-use bevy::{prelude::*, winit::WinitSettings};
+use bevy::prelude::*;
 
 const GRID_SPRITE: &str = "grid.png";
 const X_SPRITE: &str = "x.png";
@@ -116,7 +116,7 @@ fn main() {
             ..Default::default()
         })
         // Only run the app when there is user input. This will significantly reduce CPU/GPU use.
-        .insert_resource(WinitSettings::desktop_app())
+        // .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
         .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(setup))
