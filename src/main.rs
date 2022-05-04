@@ -187,11 +187,6 @@ fn handle_mouse_clicks(
         request = grid.set_position(&parsed_move, &next_player.mark);
         winner = grid.check_game(&parsed_move, &next_player.mark);
 
-        if winner {
-            // Change game state
-            app_state.set(AppState::Winner).unwrap();
-            println!("Player {} has won the game!", next_player.mark);
-        }
         if request {
             // Draw mark
             let sprite = commands
@@ -211,8 +206,13 @@ fn handle_mouse_clicks(
                     ..Default::default()
                 })
                 .insert(Marks);
-
-            next_player.switch();
+            if winner {
+                // Change game state
+                app_state.set(AppState::Winner).unwrap();
+                println!("Player {} has won the game!", next_player.mark);
+            } else {
+                next_player.switch();
+            }
         }
     }
 }
